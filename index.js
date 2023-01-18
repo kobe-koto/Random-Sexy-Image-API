@@ -5,12 +5,18 @@ const originatorHost = "https://file.koto.cc/api",
     availableType = ["fur","gay","transfur"]
 
 addEventListener("fetch", (event) => {
+    const GlobalResponse404 = new Response("404 NOT FOUND, Please visit our docs: https://docs.koto.cc/apis/rsi .",
+        {
+            headers: HeadersInit,
+            status: 404
+        });
+
     return event.respondWith(
-        handleRequest(event.request).catch()
+        handleRequest(event.request, GlobalResponse404).catch()
     );
 });
 
-async function handleRequest(request) {
+async function handleRequest(request, GlobalResponse404) {
     let url = new URL(request.url);
     const databaseType = url.pathname.split("/")[1].toLowerCase();
 
@@ -18,8 +24,9 @@ async function handleRequest(request) {
         return GlobalResponse404;
     }
 
-    const ImgList = { pics } = await fetch("https://ghs.koto.cc/static/database/" + databaseType + ".json")
+    const { pics } = await fetch("https://ghs.koto.cc/static/database/" + databaseType + ".json")
         .then(response => response.json())
+    const ImgList = pics;
 
     let ImgName = GenImgName(ImgList);
 
@@ -37,11 +44,11 @@ async function handleRequest(request) {
         BasicData.count = count;
         BasicData.name = ImgName;
         BasicData.url = ImgURL;
-        BasicData.urlPreview= "https://drive.koto.cc/Main/Image/GetColorImg/"+databaseType+"/"+name+"?preview" ;
+        BasicData.urlPreview= "https://drive.koto.cc/Main/Image/GetColorImg/"+databaseType+"/"+ImgName+"?preview" ;
 
         let returnData = BasicData;
         if (GetQueryString("fancy", url.search) === "true") {
-            const fancyResponse = await fetch(originatorHost + originatorPath + databaseType + "/" + name)
+            const fancyResponse = await fetch(originatorHost + originatorPath + databaseType + "/" + ImgName)
                 .then(response => response.json())
 
             returnData = Object.assign(BasicData, fancyResponse.file);
@@ -86,7 +93,7 @@ function GenImgName (ImgList) {
         if (RandomImgName) {
             return RandomImgName;
         } else {
-            return GenImgName();
+            return GenImgName(ImgList);
         }
 }
 
@@ -102,9 +109,3 @@ const HeadersInit = {
     'Access-Control-Allow-Origin': '*',
     'Cache-Control': 'no-store'
 }
-
-const GlobalResponse404 = new Response("404 NOT FOUND, Please visit our docs: https://docs.koto.cc/apis/rsi .",
-    {
-        headers: HeadersInit,
-        status: 404
-    });
